@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="256" height="256" viewBox="0 0 256 256">
+  <title>Altabi icon</title>
+  <g id="Layer_1" data-name="Layer 1">
+    <circle cx="128" cy="128" r="124" fill="#e8317a"/>
+    <circle cx="128" cy="128" r="105" fill="#a8a8b0"/>
+    <circle cx="128" cy="128" r="93.5" fill="#dadadf"/>
+    <path d="M182 84 L182 84 C194.15 84 204 93.85 204 106 L204 150 C204 162.15 194.15 172 182 172 L182 172 C169.85 172 160 162.15 160 150 L160 106 C160 93.85 169.85 84 182 84 Z" fill="#3a3a40"/>
+    <path d="M60.5 128 L120 128 M87 96.5 L119.5 128 L87 159.5" fill="none" stroke="#e8317a" stroke-width="21" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M143.5 66 L143.5 66 C151.232 66 157.5 72.268 157.5 80 L157.5 176 C157.5 183.732 151.232 190 143.5 190 L143.5 190 C135.768 190 129.5 183.732 129.5 176 L129.5 80 C129.5 72.268 135.768 66 143.5 66 Z" fill="#e8317a"/>
+  </g>
+</svg>

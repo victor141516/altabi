@@ -1,0 +1,21 @@
+# Build output
+**/bin/
+**/obj/
+artifacts/
+TestResults/
+
+# IDE and user state
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+
+# Local test output
+self-test-error.txt
+*.tmp
+
+# Operating system files
+Thumbs.db
+Desktop.ini
+.DS_Store
