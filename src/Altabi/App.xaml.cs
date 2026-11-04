@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Runtime;
 using System.Windows;
 using System.Windows.Threading;
 using Altabi.Services;
@@ -36,6 +38,7 @@ public partial class App : System.Windows.Application
 
         DiagnosticLog.Start();
         InstallFailureLogging();
+        RaiseInputPriority();
         if (!StartupService.IsManagedByWinKit) StartupService.RefreshEnabledRegistration();
         DiagnosticLog.Write("app", $"arguments=\"{string.Join(' ', e.Args)}\" winkitManaged={StartupService.IsManagedByWinKit}");
 
@@ -64,6 +67,25 @@ public partial class App : System.Windows.Application
                 MessageBoxButton.OK, MessageBoxImage.Error);
             ShutdownCleanly();
         }
+    }
+
+    /// <summary>
+    /// The keyboard hook must answer within the system's hook timeout or Windows drops it, and
+    /// every key on the machine waits for it. Above-normal priority keeps it responsive under load,
+    /// and the low-latency GC mode avoids blocking full collections that would freeze its thread.
+    /// </summary>
+    private static void RaiseInputPriority()
+    {
+        try
+        {
+            using Process process = Process.GetCurrentProcess();
+            process.PriorityClass = ProcessPriorityClass.AboveNormal;
+        }
+        catch (Exception exception)
+        {
+            DiagnosticLog.Error("app", "could not raise the process priority", exception);
+        }
+        GCSettings.LatencyMode = GCLatencyMode.SustainedLowLatency;
     }
 
     private void InstallFailureLogging()

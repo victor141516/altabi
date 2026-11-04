@@ -9,12 +9,18 @@ internal static class SelfTests
     private static readonly KeyModifiers Alt = new(true, false, false, false);
     private static readonly KeyModifiers AltShift = new(true, true, false, false);
     private static readonly KeyModifiers AltControl = new(true, false, true, false);
+    private static readonly KeyModifiers AltWindows = new(true, false, false, true);
+    private const int VkA = 0x41;
+    private const int VkD = 0x44;
+    private const int VkF4 = 0x73;
 
     public static int Run()
     {
         try
         {
             AssertSessionKeys();
+            AssertWindowShortcuts();
+            AssertOtherAltCombinationsPassThrough();
             AssertNativeCombinationsPassThrough();
             AssertEscapeCancels();
             AssertSuppressedKeysStayPaired();
@@ -59,8 +65,51 @@ internal static class SelfTests
         var keys = new AltTabKeyStateMachine();
         Expect(keys.Process(AltTabKeyStateMachine.VkTab, true, false, AltControl), false, SwitcherCommand.None, "ctrl alt tab");
         Expect(keys.Process(AltTabKeyStateMachine.VkTab, true, false, None), false, SwitcherCommand.None, "plain tab");
-        Expect(keys.Process(AltTabKeyStateMachine.VkQ, true, false, Alt), false, SwitcherCommand.None, "alt q without session");
+        Expect(keys.Process(AltTabKeyStateMachine.VkQ, true, false, AltControl), false, SwitcherCommand.None, "altgr q");
+        Expect(keys.Process(AltTabKeyStateMachine.VkE, true, false, AltControl), false, SwitcherCommand.None, "altgr e (euro)");
+        Expect(keys.Process(AltTabKeyStateMachine.VkE, true, false, AltWindows), false, SwitcherCommand.None, "win alt e");
+        Expect(keys.Process(AltTabKeyStateMachine.VkQ, true, false, AltShift), false, SwitcherCommand.None, "alt shift q");
+        Expect(keys.Process(AltTabKeyStateMachine.VkQ, true, false, None), false, SwitcherCommand.None, "plain q");
+        Expect(keys.Process(AltTabKeyStateMachine.VkE, true, false, None), false, SwitcherCommand.None, "plain e");
+        if (keys.IsSessionActive || keys.HasSuppressedKeys) throw new Exception("Native combinations must not start a session");
         Expect(keys.Process(AltTabKeyStateMachine.VkRightAlt, false, true, None), false, SwitcherCommand.None, "alt up idle");
+    }
+
+    private static void AssertWindowShortcuts()
+    {
+        var keys = new AltTabKeyStateMachine();
+        Expect(keys.Process(AltTabKeyStateMachine.VkLeftAlt, true, false, None), false, SwitcherCommand.None, "alt down");
+        KeyDecision start = keys.Process(AltTabKeyStateMachine.VkQ, true, false, Alt);
+        Expect(start, true, SwitcherCommand.StartPreviousWindow, "alt q");
+        if (!start.InjectMenuMask) throw new Exception("Alt+Q must inject the menu mask key");
+        Expect(keys.Process(AltTabKeyStateMachine.VkQ, true, false, Alt), true, SwitcherCommand.PreviousWindow, "q repeat");
+        Expect(keys.Process(AltTabKeyStateMachine.VkQ, false, true, Alt), true, SwitcherCommand.None, "q up");
+        Expect(keys.Process(AltTabKeyStateMachine.VkE, true, false, Alt), true, SwitcherCommand.NextWindow, "e in session");
+        Expect(keys.Process(AltTabKeyStateMachine.VkE, false, true, Alt), true, SwitcherCommand.None, "e up");
+        Expect(keys.Process(AltTabKeyStateMachine.VkTab, true, false, Alt), true, SwitcherCommand.NextApp, "tab after alt q");
+        Expect(keys.Process(AltTabKeyStateMachine.VkTab, false, true, Alt), true, SwitcherCommand.None, "tab up");
+        Expect(keys.Process(AltTabKeyStateMachine.VkLeftAlt, false, true, Alt), false, SwitcherCommand.Commit, "alt up");
+        if (keys.HasSuppressedKeys) throw new Exception("All consumed keys were released");
+
+        KeyDecision next = keys.Process(AltTabKeyStateMachine.VkE, true, false, Alt);
+        Expect(next, true, SwitcherCommand.StartNextWindow, "alt e");
+        if (!next.InjectMenuMask) throw new Exception("Alt+E must inject the menu mask key");
+        Expect(keys.Process(AltTabKeyStateMachine.VkLeftAlt, false, true, Alt), false, SwitcherCommand.Commit, "alt up after e");
+        // E is still held after Alt was released: its release stays hidden, then it types normally.
+        Expect(keys.Process(AltTabKeyStateMachine.VkE, false, true, None), true, SwitcherCommand.None, "late e up");
+        Expect(keys.Process(AltTabKeyStateMachine.VkE, true, false, None), false, SwitcherCommand.None, "e types again");
+    }
+
+    private static void AssertOtherAltCombinationsPassThrough()
+    {
+        var keys = new AltTabKeyStateMachine();
+        foreach (int key in new[] { VkA, VkD, VkF4, AltTabKeyStateMachine.VkW, AltTabKeyStateMachine.VkEscape })
+        {
+            Expect(keys.Process(key, true, false, Alt), false, SwitcherCommand.None, $"alt+0x{key:X2} down");
+            Expect(keys.Process(key, false, true, Alt), false, SwitcherCommand.None, $"alt+0x{key:X2} up");
+        }
+        Expect(keys.Process(AltTabKeyStateMachine.VkLeftAlt, false, true, None), false, SwitcherCommand.None, "alt up idle");
+        if (keys.IsSessionActive || keys.HasSuppressedKeys) throw new Exception("Other Alt shortcuts must be left alone");
     }
 
     private static void AssertEscapeCancels()
@@ -119,6 +168,21 @@ internal static class SelfTests
             throw new Exception("A single application must stay selected");
         if (SwitcherSession.Create([], "editor", reverse: false).Target is not null)
             throw new Exception("An empty session must have no target");
+
+        // Alt+Q / Alt+E start on the current app and window.
+        SwitcherSession current = SwitcherSession.CreateForCurrentApp(groups, "terminal", terminal.Windows[1].Handle);
+        if (current.SelectedApp != 2 || current.SelectedWindow != 1)
+            throw new Exception("Alt+Q/E must start on the foreground app and window");
+        current.MoveWindow(1);
+        if (current.Target?.Handle != terminal.Windows[0].Handle) throw new Exception("Alt+E must select the next window");
+        SwitcherSession editorQ = SwitcherSession.CreateForCurrentApp(groups, "editor", editor.Windows[0].Handle);
+        editorQ.MoveWindow(-1);
+        if (editorQ.Target?.Handle != editor.Windows[2].Handle) throw new Exception("Alt+Q must select the previous window");
+        SwitcherSession unknown = SwitcherSession.CreateForCurrentApp(groups, null, IntPtr.Zero);
+        if (unknown.SelectedApp != 0 || unknown.SelectedWindow != 0)
+            throw new Exception("Without a foreground app Alt+Q/E must start on the most recent app");
+        if (SwitcherSession.CreateForCurrentApp([], "editor", IntPtr.Zero).Target is not null)
+            throw new Exception("An empty current-app session must have no target");
 
         SwitcherSession session = SwitcherSession.Create(groups, "editor", reverse: false);
         if (session.MoveWindow(1)) throw new Exception("A single-window app must ignore window moves");

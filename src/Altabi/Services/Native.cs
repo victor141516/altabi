@@ -13,6 +13,7 @@ internal static class Native
     public const int WmSysKeyDown = 0x0104;
     public const int WmSysKeyUp = 0x0105;
     public const uint WmQuit = 0x0012;
+    public const uint WmTimer = 0x0113;
     public const uint LlkhfExtended = 0x01;
     public const uint LlkhfInjected = 0x10;
     public const uint LlkhfAltDown = 0x20;
@@ -273,6 +274,9 @@ internal static class Native
     public static extern bool PeekMessage(out NativeMessage message, IntPtr window, uint minimum, uint maximum, uint remove);
     [DllImport("user32.dll")] public static extern bool TranslateMessage(ref NativeMessage message);
     [DllImport("user32.dll", EntryPoint = "DispatchMessageW")] public static extern IntPtr DispatchMessage(ref NativeMessage message);
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern UIntPtr SetTimer(IntPtr window, UIntPtr id, uint elapseMs, IntPtr callback);
+    [DllImport("user32.dll")] public static extern bool KillTimer(IntPtr window, UIntPtr id);
     [DllImport("user32.dll", SetLastError = true)]
     public static extern bool PostThreadMessage(uint threadId, uint message, IntPtr wParam, IntPtr lParam);
     [DllImport("user32.dll")]

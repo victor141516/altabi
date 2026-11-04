@@ -21,7 +21,8 @@ remembers which window of each app you were using.
 
 - ⚡ Instant. Tap Alt+Tab quickly to jump straight back to the previous app without seeing anything.
 - 🗂️ Grouped. Windows are grouped by application, most recently used first.
-- 🪟 Previews. Keep Alt held and the selected app's windows appear as live thumbnails. Press `Q` and `W` to pick one.
+- 🪟 Previews. Keep Alt held and the selected app's windows appear as live thumbnails. Press `Q` and `E` to pick one.
+- 🔁 Window hopping. `Alt + Q` / `Alt + E` jump straight to the previous / next window of the app you are in.
 - 🖱️ Mouse too. Hover an app or a preview to select it, click to switch.
 - ✨ Native. Acrylic panel, smooth animations, sharp high-resolution icons.
 
@@ -32,11 +33,22 @@ remembers which window of each app you were using.
 | `Alt + Tab` | Select the previous app; release Alt to switch |
 | `Tab` / `Shift + Tab` | Next / previous app while Alt is held |
 | `Alt + Shift + Tab` | Start from the least recently used app |
-| `Q` / `W` | Previous / next window of the selected app |
+| `Q` / `E` | Previous / next window of the selected app (`W` also works as next) |
+| `Alt + Q` / `Alt + E` | Previous / next window of the current app; release Alt to switch |
 | `Esc` | Cancel without switching |
 
 Releasing Alt within 85 ms of the first Tab switches without showing the switcher. A second Tab
-shows it immediately. Previews appear for apps with more than one window.
+shows it immediately. Previews appear for apps with more than one window. `Alt + Q` and `Alt + E`
+behave like `Alt + Tab`, `Shift + Tab`, `Q`/`E`: a quick release switches silently, holding Alt shows
+the switcher with the previews open.
+
+Altabi only claims `Alt + Tab`, `Alt + Shift + Tab`, `Alt + Q` and `Alt + E`. Every other Alt
+shortcut, and AltGr combinations such as `AltGr + E` (€) or `AltGr + Q` (@), reach the focused
+application untouched. While the switcher is open, other keys are ignored.
+
+Windows does not deliver keyboard input to a non-elevated program while an elevated window
+(Task Manager, an administrator terminal) has focus, so the switcher cannot react there unless
+Altabi itself runs as administrator.
 
 ## Portable releases and WinKit
 

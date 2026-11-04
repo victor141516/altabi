@@ -37,6 +37,33 @@ internal sealed class SwitcherSession
         return new SwitcherSession(groups, selected);
     }
 
+    /// <summary>
+    /// Alt+Q / Alt+E: selects the foreground application (the most recent one when the foreground
+    /// window belongs to none) with the foreground window as the starting point, so that the
+    /// following window move lands on its previous or next window.
+    /// </summary>
+    public static SwitcherSession CreateForCurrentApp(IReadOnlyList<AppGroup> groups, string? foregroundKey,
+        IntPtr foregroundWindow)
+    {
+        if (groups.Count == 0) return new SwitcherSession(groups, -1);
+        int selected = 0;
+        for (int index = 0; index < groups.Count; index++)
+        {
+            if (groups[index].Key != foregroundKey) continue;
+            selected = index;
+            break;
+        }
+        var session = new SwitcherSession(groups, selected);
+        IReadOnlyList<WindowEntry> windows = groups[selected].Windows;
+        for (int index = 0; index < windows.Count; index++)
+        {
+            if (windows[index].Handle != foregroundWindow) continue;
+            session.SelectedWindow = index;
+            break;
+        }
+        return session;
+    }
+
     public bool MoveApp(int delta)
     {
         if (Groups.Count == 0) return false;

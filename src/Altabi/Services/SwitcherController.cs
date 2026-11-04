@@ -76,7 +76,8 @@ internal sealed class SwitcherController : IDisposable
     {
         try
         {
-            if (command is not (SwitcherCommand.Start or SwitcherCommand.StartReverse) && _session is null)
+            if (command is not (SwitcherCommand.Start or SwitcherCommand.StartReverse or
+                    SwitcherCommand.StartPreviousWindow or SwitcherCommand.StartNextWindow) && _session is null)
             {
                 DiagnosticLog.Write("switcher", $"ignored {command}: no session");
                 return;
@@ -85,6 +86,8 @@ internal sealed class SwitcherController : IDisposable
             {
                 case SwitcherCommand.Start: Begin(reverse: false); break;
                 case SwitcherCommand.StartReverse: Begin(reverse: true); break;
+                case SwitcherCommand.StartPreviousWindow: BeginOnCurrentApp(-1); break;
+                case SwitcherCommand.StartNextWindow: BeginOnCurrentApp(1); break;
                 case SwitcherCommand.NextApp: MoveApp(1); break;
                 case SwitcherCommand.PreviousApp: MoveApp(-1); break;
                 case SwitcherCommand.NextWindow: MoveWindow(1); break;
@@ -106,6 +109,36 @@ internal sealed class SwitcherController : IDisposable
         _sessionClock.Restart();
         WindowSnapshot snapshot = _tracker.Snapshot();
         _session = SwitcherSession.Create(snapshot.Groups, snapshot.ForegroundKey, reverse);
+        StartSession(snapshot, $"reverse={reverse}");
+    }
+
+    /// <summary>
+    /// Alt+Q / Alt+E: equivalent to Alt+Tab, Shift+Tab, Q/E. The current app's previous or next
+    /// window becomes the target without showing anything yet, so a quick Alt release switches
+    /// windows silently and holding Alt reveals the overlay with the previews already open.
+    /// </summary>
+    private void BeginOnCurrentApp(int windowDelta)
+    {
+        if (_session is not null) End(activate: false, "superseded");
+        _sessionClock.Restart();
+        WindowSnapshot snapshot = _tracker.Snapshot();
+        IntPtr foregroundRoot = snapshot.Foreground == IntPtr.Zero
+            ? IntPtr.Zero
+            : Native.GetAncestor(snapshot.Foreground, Native.GaRootOwner);
+        if (foregroundRoot == IntPtr.Zero) foregroundRoot = snapshot.Foreground;
+        _session = SwitcherSession.CreateForCurrentApp(snapshot.Groups, snapshot.ForegroundKey, foregroundRoot);
+        StartSession(snapshot, $"currentApp windowDelta={windowDelta}");
+        if (_session.MoveWindow(windowDelta))
+        {
+            _previewDue = true;
+            _previewTimer.Stop();
+        }
+        DiagnosticLog.Write("switcher", $"session={_session.Id} window={_session.SelectedWindow} {DescribeTarget(_session)}");
+    }
+
+    private void StartSession(WindowSnapshot snapshot, string mode)
+    {
+        SwitcherSession session = _session!;
         _monitor = ChooseMonitor(snapshot.Foreground);
         _overlayVisible = false;
         _previewDue = false;
@@ -115,8 +148,8 @@ internal sealed class SwitcherController : IDisposable
         _previewTimer.Stop();
         _previewTimer.Start();
         _altWatch.Start();
-        DiagnosticLog.Write("switcher", $"session={_session.Id} start reverse={reverse} apps={snapshot.Groups.Count} " +
-            $"selected={_session.SelectedApp} {DescribeTarget(_session)} monitor={Native.Hex(_monitor)} " +
+        DiagnosticLog.Write("switcher", $"session={session.Id} start {mode} apps={snapshot.Groups.Count} " +
+            $"selected={session.SelectedApp} {DescribeTarget(session)} monitor={Native.Hex(_monitor)} " +
             $"snapshotMs={_sessionClock.ElapsedMilliseconds}");
     }
 
