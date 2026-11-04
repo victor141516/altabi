@@ -38,7 +38,7 @@ internal sealed class SwitcherSession
     }
 
     /// <summary>
-    /// Alt+Q / Alt+E: selects the foreground application (the most recent one when the foreground
+    /// Alt+Q / Alt+W: selects the foreground application (the most recent one when the foreground
     /// window belongs to none) with the foreground window as the starting point, so that the
     /// following window move lands on its previous or next window.
     /// </summary>

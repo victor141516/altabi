@@ -113,7 +113,7 @@ internal sealed class SwitcherController : IDisposable
     }
 
     /// <summary>
-    /// Alt+Q / Alt+E: equivalent to Alt+Tab, Shift+Tab, Q/E. The current app's previous or next
+    /// Alt+Q / Alt+W: equivalent to Alt+Tab, Shift+Tab, Q/W. The current app's previous or next
     /// window becomes the target without showing anything yet, so a quick Alt release switches
     /// windows silently and holding Alt reveals the overlay with the previews already open.
     /// </summary>

@@ -21,8 +21,8 @@ remembers which window of each app you were using.
 
 - ⚡ Instant. Tap Alt+Tab quickly to jump straight back to the previous app without seeing anything.
 - 🗂️ Grouped. Windows are grouped by application, most recently used first.
-- 🪟 Previews. Keep Alt held and the selected app's windows appear as live thumbnails. Press `Q` and `E` to pick one.
-- 🔁 Window hopping. `Alt + Q` / `Alt + E` jump straight to the previous / next window of the app you are in.
+- 🪟 Previews. Keep Alt held and the selected app's windows appear as live thumbnails. Press `Q` and `W` to pick one.
+- 🔁 Window hopping. `Alt + Q` / `Alt + W` jump straight to the previous / next window of the app you are in.
 - 🖱️ Mouse too. Hover an app or a preview to select it, click to switch.
 - ✨ Native. Acrylic panel, smooth animations, sharp high-resolution icons.
 
@@ -33,22 +33,18 @@ remembers which window of each app you were using.
 | `Alt + Tab` | Select the previous app; release Alt to switch |
 | `Tab` / `Shift + Tab` | Next / previous app while Alt is held |
 | `Alt + Shift + Tab` | Start from the least recently used app |
-| `Q` / `E` | Previous / next window of the selected app (`W` also works as next) |
-| `Alt + Q` / `Alt + E` | Previous / next window of the current app; release Alt to switch |
+| `Q` / `W` | Previous / next window of the selected app |
+| `Alt + Q` / `Alt + W` | Previous / next window of the current app; release Alt to switch |
 | `Esc` | Cancel without switching |
 
 Releasing Alt within 85 ms of the first Tab switches without showing the switcher. A second Tab
-shows it immediately. Previews appear for apps with more than one window. `Alt + Q` and `Alt + E`
-behave like `Alt + Tab`, `Shift + Tab`, `Q`/`E`: a quick release switches silently, holding Alt shows
+shows it immediately. Previews appear for apps with more than one window. `Alt + Q` and `Alt + W`
+behave like `Alt + Tab`, `Shift + Tab`, `Q`/`W`: a quick release switches silently, holding Alt shows
 the switcher with the previews open.
 
-Altabi only claims `Alt + Tab`, `Alt + Shift + Tab`, `Alt + Q` and `Alt + E`. Every other Alt
-shortcut, and AltGr combinations such as `AltGr + E` (€) or `AltGr + Q` (@), reach the focused
+Altabi only claims `Alt + Tab`, `Alt + Shift + Tab`, `Alt + Q` and `Alt + W`. Every other Alt
+shortcut, and AltGr combinations such as `AltGr + Q` (@), reach the focused
 application untouched. While the switcher is open, other keys are ignored.
-
-Windows does not deliver keyboard input to a non-elevated program while an elevated window
-(Task Manager, an administrator terminal) has focus, so the switcher cannot react there unless
-Altabi itself runs as administrator.
 
 ## Portable releases and WinKit
 
@@ -62,7 +58,7 @@ Build from source with the .NET 10 SDK:
 
 ```powershell
 dotnet build Altabi.slnx -c Release
-./scripts/publish-portable.ps1 -AppName Altabi -ProjectPath src/Altabi/Altabi.csproj -Version v0.2.0
+./scripts/publish-portable.ps1 -AppName Altabi -ProjectPath src/Altabi/Altabi.csproj -Version v0.2.1
 ```
 
 Diagnostics are written to `%LOCALAPPDATA%\Altabi\Logs\altabi.log`. Only switcher keys are
@@ -70,6 +66,7 @@ recorded, never typed text.
 
 ## Note
 
-Windows prevents normal apps from reading the keyboard while an elevated window, such as Task
-Manager, is focused. In that case the native Alt+Tab appears. Run Altabi elevated if you need it
-there too.
+Windows does not let normal apps read the keyboard while a window with a higher integrity level
+is focused: elevated apps such as Task Manager, and UIAccess apps such as TeamSpeak 3. There the
+native Alt+Tab appears, and Altabi leaves it alone until it closes instead of opening a second
+switcher on top. Run Altabi elevated if you need it there too.

@@ -160,8 +160,11 @@ internal sealed class KeyboardHookHost : IDisposable
                 Control: Native.IsKeyDown(Native.VkControl),
                 Windows: Native.IsKeyDown(Native.VkLeftWindows) || Native.IsKeyDown(Native.VkRightWindows));
 
-            KeyDecision decision = _keys.Process(key.VirtualKey, down, up, modifiers);
+            // Only Alt key-downs outside a session can start one; skip the window query otherwise.
+            bool nativeSwitcherOpen = down && modifiers.Alt && !_keys.IsSessionActive && IsNativeSwitcherForeground();
+            KeyDecision decision = _keys.Process(key.VirtualKey, down, up, modifiers, nativeSwitcherOpen);
             if (decision.Suppress || decision.Command != SwitcherCommand.None ||
+                decision.Reason == AltTabKeyStateMachine.NativeSwitcherReason ||
                 (_keys.IsSessionActive && IsInterestingKey(key.VirtualKey)))
             {
                 uint delay = unchecked((uint)Environment.TickCount - key.Time);
@@ -208,9 +211,19 @@ internal sealed class KeyboardHookHost : IDisposable
         }
     };
 
+    // Window classes of Windows' own Alt+Tab / Task View UI (Windows 11, Windows 10, legacy).
+    private static readonly string[] NativeSwitcherClasses =
+        ["XamlExplorerHostIslandWindow", "MultitaskingViewFrame", "TaskSwitcherWnd"];
+
+    private static bool IsNativeSwitcherForeground()
+    {
+        IntPtr foreground = Native.GetForegroundWindow();
+        return foreground != IntPtr.Zero && NativeSwitcherClasses.Contains(Native.GetClassName(foreground));
+    }
+
     private static bool IsInterestingKey(int virtualKey) => virtualKey is
         AltTabKeyStateMachine.VkTab or AltTabKeyStateMachine.VkEscape or AltTabKeyStateMachine.VkQ or
-        AltTabKeyStateMachine.VkW or AltTabKeyStateMachine.VkE or Native.VkMenu or AltTabKeyStateMachine.VkLeftAlt or
+        AltTabKeyStateMachine.VkW or Native.VkMenu or AltTabKeyStateMachine.VkLeftAlt or
         AltTabKeyStateMachine.VkRightAlt;
 
     // Only switcher-related keys are named; ordinary typing is never written to the log.
@@ -220,7 +233,6 @@ internal sealed class KeyboardHookHost : IDisposable
         AltTabKeyStateMachine.VkEscape => "escape",
         AltTabKeyStateMachine.VkQ => "q",
         AltTabKeyStateMachine.VkW => "w",
-        AltTabKeyStateMachine.VkE => "e",
         Native.VkMenu => "alt",
         AltTabKeyStateMachine.VkLeftAlt => "left-alt",
         AltTabKeyStateMachine.VkRightAlt => "right-alt",

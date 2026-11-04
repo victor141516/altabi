@@ -7,7 +7,7 @@ internal enum SwitcherCommand
     StartReverse,
     /// <summary>Alt+Q: start on the current app with its previous window selected.</summary>
     StartPreviousWindow,
-    /// <summary>Alt+E: start on the current app with its next window selected.</summary>
+    /// <summary>Alt+W: start on the current app with its next window selected.</summary>
     StartNextWindow,
     NextApp,
     PreviousApp,
@@ -28,18 +28,18 @@ internal readonly record struct KeyDecision(bool Suppress, SwitcherCommand Comma
 /// Invariant: once a key-down is suppressed, every following event of that key up to and including
 /// its key-up is suppressed too, so applications never receive an unmatched key-up or key-down.
 /// Alt events are never suppressed, so Alt can never remain logically pressed.
-/// Outside a session only Alt+Tab, Alt+Shift+Tab, Alt+Q and Alt+E are claimed; every other Alt
+/// Outside a session only Alt+Tab, Alt+Shift+Tab, Alt+Q and Alt+W are claimed; every other Alt
 /// combination (including AltGr, which reports Ctrl+Alt) reaches the system untouched.
 /// </summary>
 internal sealed class AltTabKeyStateMachine
 {
     public const int VkTab = 0x09;
     public const int VkEscape = 0x1B;
-    public const int VkE = 0x45;
     public const int VkQ = 0x51;
     public const int VkW = 0x57;
     public const int VkLeftAlt = 0xA4;
     public const int VkRightAlt = 0xA5;
+    public const string NativeSwitcherReason = "native-switcher-open";
 
     private readonly object _gate = new();
     private readonly HashSet<int> _suppressedKeys = new();
@@ -56,7 +56,13 @@ internal sealed class AltTabKeyStateMachine
         get { lock (_gate) return _suppressedKeys.Count > 0; }
     }
 
-    public KeyDecision Process(int virtualKey, bool isDown, bool isUp, KeyModifiers modifiers)
+    /// <param name="nativeSwitcherOpen">
+    /// Windows' own task switcher is the foreground window. It appears when Altabi could not see
+    /// the first Alt+Tab (the focused window had a higher integrity level, e.g. a UIAccess or
+    /// elevated app); Altabi then leaves the whole gesture to it instead of opening a second switcher.
+    /// </param>
+    public KeyDecision Process(int virtualKey, bool isDown, bool isUp, KeyModifiers modifiers,
+        bool nativeSwitcherOpen = false)
     {
         lock (_gate)
         {
@@ -93,6 +99,7 @@ internal sealed class AltTabKeyStateMachine
                     return Pass(SwitcherCommand.None,
                         modifiers.Alt && (modifiers.Control || modifiers.Windows) ? "native-combination" : "idle");
                 }
+                if (nativeSwitcherOpen) return Pass(SwitcherCommand.None, NativeSwitcherReason);
                 _sessionActive = true;
                 _suppressedKeys.Add(virtualKey);
                 return new KeyDecision(true, start, InjectMenuMask: true, "session-start");
@@ -136,7 +143,7 @@ internal sealed class AltTabKeyStateMachine
 
     /// <summary>
     /// The command that starts a session, or None when the key must reach the system. Ctrl and
-    /// Win always pass (Ctrl+Alt+Tab, AltGr+E = €, AltGr+Q = @); Shift only modifies Tab.
+    /// Win always pass (Ctrl+Alt+Tab, AltGr+Q = @); Shift only modifies Tab.
     /// </summary>
     private static SwitcherCommand StartCommand(int virtualKey, KeyModifiers modifiers)
     {
@@ -145,7 +152,7 @@ internal sealed class AltTabKeyStateMachine
         {
             VkTab => modifiers.Shift ? SwitcherCommand.StartReverse : SwitcherCommand.Start,
             VkQ when !modifiers.Shift => SwitcherCommand.StartPreviousWindow,
-            VkE when !modifiers.Shift => SwitcherCommand.StartNextWindow,
+            VkW when !modifiers.Shift => SwitcherCommand.StartNextWindow,
             _ => SwitcherCommand.None
         };
     }
@@ -154,7 +161,7 @@ internal sealed class AltTabKeyStateMachine
     {
         VkTab => modifiers.Shift ? SwitcherCommand.PreviousApp : SwitcherCommand.NextApp,
         VkQ => SwitcherCommand.PreviousWindow,
-        VkE or VkW => SwitcherCommand.NextWindow,
+        VkW => SwitcherCommand.NextWindow,
         _ => SwitcherCommand.None
     };
 
