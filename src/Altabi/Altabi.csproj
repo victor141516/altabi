@@ -10,7 +10,7 @@
     <RootNamespace>Altabi</RootNamespace>
     <Product>Altabi</Product>
     <Description>Application-grouped Alt+Tab replacement for Windows 10 and Windows 11</Description>
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>..\..\assets\icon\altabi.ico</ApplicationIcon>
     <PublishSingleFile>true</PublishSingleFile>

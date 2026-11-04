@@ -62,7 +62,7 @@ Build from source with the .NET 10 SDK:
 
 ```powershell
 dotnet build Altabi.slnx -c Release
-./scripts/publish-portable.ps1 -AppName Altabi -ProjectPath src/Altabi/Altabi.csproj -Version v0.1.0
+./scripts/publish-portable.ps1 -AppName Altabi -ProjectPath src/Altabi/Altabi.csproj -Version v0.2.0
 ```
 
 Diagnostics are written to `%LOCALAPPDATA%\Altabi\Logs\altabi.log`. Only switcher keys are
